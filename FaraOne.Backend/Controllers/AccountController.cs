@@ -147,7 +147,7 @@ namespace FaraOne.Backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _authService.Authenticate(request.Email, request.Password);
+            var user = await _authService.Authenticate(request.Username, request.Password);
 
             if (user == null)
                 return Unauthorized(new { message = "Username or password is incorrect" });

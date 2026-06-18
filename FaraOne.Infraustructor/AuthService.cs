@@ -65,6 +65,7 @@ public class AuthService
         var user = new User
         {
             UserName = username,
+            PhoneNumber = username,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Name = fullName, 
