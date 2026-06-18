@@ -1,12 +1,13 @@
 ﻿using FaraOne.Application;
 using FaraOne.Application.Context;
 using FaraOne.Application.Validator;
+using FaraOne.Backend.Hubs;
+using FaraOne.Infraustructor;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
-using FaraOne.Infraustructor;
 // TODO  ایجاد دیتابیس و ادامه ساخت ها 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,75 +15,106 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder.Services.AddScoped<ITokenValidator, TokenValidator>();
+builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddAuthentication(option =>
+
+builder.Services.AddIdnetityMain(builder.Configuration);
+builder.Services.AddScoped<UserRepository, UserRepository>();
+builder.Services.AddScoped<AuthService, AuthService>();
+builder.Services.AddScoped<UserTokenRepository, UserTokenRepository>();
+builder.Services.AddScoped<ITokenValidator, TokenValidator>(); 
+ 
+
+
+builder.Services.AddSwaggerGen();
+
+// SignalR
+builder.Services.AddSignalR(options =>
 {
-    option.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
-    option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(configureOptions =>
+    options.EnableDetailedErrors = true;
+    options.MaximumReceiveMessageSize = 102400; // 100KB
+});
+
+
+
+// Authentication
+var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"] ?? "FaraOneSuperSecretKey2024!@#$%");
+builder.Services.AddAuthentication(options =>
 {
-    configureOptions.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters()
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidIssuer = builder.Configuration["JwtConfigs:issuer"],
-        ValidAudience = builder.Configuration["JwtConfigs:audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtConfigs:key"])),
         ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
     };
-    configureOptions.SaveToken = true; //httpcontext.GetTokenAsync()
-    configureOptions.Events = new JwtBearerEvents()
+
+    // برای SignalR
+    options.Events = new JwtBearerEvents
     {
-        OnAuthenticationFailed = context =>
-        {
-            //logs
-            return Task.CompletedTask;
-        },
-        OnChallenge = context =>
-        {//logs
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {//logs
-            var tokenValidator = context.HttpContext.RequestServices.GetRequiredService<ITokenValidator>();
-            return tokenValidator.Execute(context);
-        },
         OnMessageReceived = context =>
         {
-            return Task.CompletedTask;
-        },
-        OnForbidden = context =>
-        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
+            {
+                context.Token = accessToken;
+            }
 
             return Task.CompletedTask;
         }
     };
 });
- 
- 
-builder.Services.AddScoped<UserRepository, UserRepository>();
-builder.Services.AddScoped<UserTokenRepository, UserTokenRepository>();
-builder.Services.AddIdnetityMain( builder.Configuration);
 
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 
-builder.Services.AddSwaggerGen();
+    options.AddPolicy("AllowSpecific", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
+// Services
+builder.Services.AddScoped<AuthService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-    });
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("AllowSpecific");
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
+app.MapHub<ChatHub>("/chatHub");
 
+ 
 app.Run();

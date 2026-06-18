@@ -11,13 +11,20 @@ public static class IdentityMainConfing
 {
     public static IServiceCollection AddIdnetityMain(this IServiceCollection services, IConfiguration configuration)
     {
-        var ConString = configuration["ConnectionStrings:sqlServer"];
-        services.AddDbContext<DataContext>(s => s.UseSqlServer(ConString));
+        var ConString = configuration.GetConnectionString("sqlServer");
 
-        services.AddIdentity<User, IdentityRole>()
-            .AddEntityFrameworkStores<DataContext>()
-            .AddRoles<IdentityRole>()
-            .AddErrorDescriber<CustomIdentityError>();
+        services.AddScoped<IDatabaseContext, DataContext>();
+        // ثبت DbContext با تنظیمات کامل
+        services.AddDbContext<DataContext>(options =>
+        {
+            options.UseSqlServer(ConString, sqlOptions =>
+            {
+                sqlOptions.MigrationsAssembly("FaraOne.Persistence"); // اسم اسمبلی Migration
+                sqlOptions.EnableRetryOnFailure();
+            });
+            options.EnableSensitiveDataLogging(); // برای دیباگ (در توسعه)
+        }, ServiceLifetime.Scoped); // مشخص کردن Lifetime
+
 
         services.Configure<IdentityOptions>(s =>
         {

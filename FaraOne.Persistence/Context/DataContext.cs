@@ -13,9 +13,9 @@ using FaraOne.Domain;
 namespace FaraOne.Persistence.Context
 {
     public class DataContext : DbContext , IDatabaseContext
-    {
+    {     // فقط همین سازنده باقی بماند
         public DataContext(DbContextOptions<DataContext> options) : base(options)
-        {   
+        {
         }
 
         public DbSet<User> Users { get; set; }
@@ -48,7 +48,7 @@ namespace FaraOne.Persistence.Context
             {
                 if (entityType.ClrType.GetCustomAttributes(typeof(AudtableAttribute), true).Length > 0)
                 {
-                    builder.Entity(entityType.Name).Property<DateTime>("InsertTime").HasDefaultValue(DateTime.Now);
+                    builder.Entity(entityType.Name).Property<DateTime>("InsertTime").HasDefaultValue(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
                     builder.Entity(entityType.Name).Property<DateTime?>("EditTime");
                     builder.Entity(entityType.Name).Property<DateTime?>("RemoveTime");
                     builder.Entity(entityType.Name).Property<bool>("IsRemoved").HasDefaultValue(false);
