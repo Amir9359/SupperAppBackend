@@ -19,10 +19,10 @@ public class ChatController : ControllerBase
         _dbContext = dbContext;
     }
 
-    private int GetUserId()
+    private string GetUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.TryParse(userIdClaim, out var userId) ? userId : 0;
+        return userIdClaim;
     }
 
     [HttpGet("rooms")]
@@ -31,7 +31,7 @@ public class ChatController : ControllerBase
         var userId = GetUserId();
 
         var rooms = await _dbContext.ChatRooms
-            .Where(r => r.UserId == userId || r.AgentId == userId)
+            .Where(r => r.UserId == userId  )
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => new
             {
@@ -40,7 +40,7 @@ public class ChatController : ControllerBase
                 r.CreatedAt,
                 r.ClosedAt,
                 LastMessage = _dbContext.Messages
-                    .Where(m => m.RoomId == r.RoomId)
+                    .Where(m => m.ChatRoomId == r.RoomId)
                     .OrderByDescending(m => m.Timestamp)
                     .Select(m => new { m.Content, m.Timestamp })
                     .FirstOrDefault()
@@ -54,7 +54,7 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> GetMessages(string roomId, [FromQuery] int take = 50)
     {
         var messages = await _dbContext.Messages
-            .Where(m => m.RoomId == roomId)
+            .Where(m => m.ChatRoomId == roomId)
             .OrderByDescending(m => m.Timestamp)
             .Take(take)
             .OrderBy(m => m.Timestamp)

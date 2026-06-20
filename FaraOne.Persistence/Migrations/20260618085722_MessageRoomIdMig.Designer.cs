@@ -4,6 +4,7 @@ using FaraOne.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FaraOne.Persistence.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260618085722_MessageRoomIdMig")]
+    partial class MessageRoomIdMig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -96,6 +99,9 @@ namespace FaraOne.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("ChatRoomId1")
+                        .HasColumnType("int");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -127,6 +133,8 @@ namespace FaraOne.Persistence.Migrations
 
                     b.HasIndex("ChatRoomId")
                         .HasDatabaseName("IX_Messages_RoomId");
+
+                    b.HasIndex("ChatRoomId1");
 
                     b.ToTable("Messages", "dbo");
                 });
@@ -443,6 +451,17 @@ namespace FaraOne.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FaraOne.Domain.Message", b =>
+                {
+                    b.HasOne("FaraOne.Domain.ChatRoom", "ChatRoom")
+                        .WithMany()
+                        .HasForeignKey("ChatRoomId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatRoom");
                 });
 
             modelBuilder.Entity("FaraOne.Domain.MiniApp", b =>

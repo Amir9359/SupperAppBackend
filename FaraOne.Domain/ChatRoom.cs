@@ -7,11 +7,11 @@ namespace FaraOne.Domain;
 public class ChatRoom
 {
     public int Id { get; set; }
-    [MaxLength(30)]
+    [MaxLength(100)]
 
     public string RoomId { get; set; } = string.Empty;
     public int TenantId { get; set; }
-    public int? UserId { get; set; }
+    public string UserId { get; set; }
     public User.User User { get; set; }
     public int? AgentId { get; set; }
 

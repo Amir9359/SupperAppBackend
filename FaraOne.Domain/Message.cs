@@ -5,12 +5,10 @@ namespace FaraOne.Domain;
 public class Message
 {
     public int Id { get; set; }
-    [MaxLength(10)]
-    public string RoomId { get; set; } = string.Empty;
-    public int ChatRoomId { get; set; }
-    public ChatRoom ChatRoom { get; set; }
+    [MaxLength(100)]
+    public string ChatRoomId { get; set; }  
 
-    public int SenderId { get; set; }
+    public string SenderId { get; set; }
 
     [MaxLength(150)]
     public string SenderName { get; set; } = string.Empty;

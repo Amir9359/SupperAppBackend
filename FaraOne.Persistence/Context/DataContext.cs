@@ -32,7 +32,7 @@ namespace FaraOne.Persistence.Context
             builder.HasDefaultSchema("dbo");
 
             builder.Entity<Message>()
-                .HasIndex(m => m.RoomId)
+                .HasIndex(m => m.ChatRoomId)
                 .HasDatabaseName("IX_Messages_RoomId");
 
              

@@ -23,10 +23,10 @@ public class ChatHub : Hub
     }
 
     // دریافت userId از Claim
-    private int GetUserId()
+    private string GetUserId()
     {
         var userIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.TryParse(userIdClaim, out var userId) ? userId : 0;
+        return userIdClaim;
     }
 
     private string GetUsername()
@@ -40,7 +40,7 @@ public class ChatHub : Hub
         var userId = GetUserId();
         var username = GetUsername();
 
-        if (userId != 0)
+        if (userId != null)
         {
             _userConnections[userId.ToString()] = Context.ConnectionId;
 
@@ -67,7 +67,7 @@ public class ChatHub : Hub
         var userId = GetUserId();
         var username = GetUsername();
 
-        if (userId != 0)
+        if (userId != null)
         {
             _userConnections.TryRemove(userId.ToString(), out _);
 
@@ -109,7 +109,7 @@ public class ChatHub : Hub
 
         // دریافت تاریخچه پیام‌ها
         var messages = await _dbContext.Messages
-            .Where(m => m.RoomId == roomId)
+            .Where(m => m.ChatRoomId == roomId)
             .OrderBy(m => m.Timestamp)
             .Take(50)
             .ToListAsync();
@@ -146,10 +146,10 @@ public class ChatHub : Hub
     {
         var userId = GetUserId();
         var username = GetUsername();
-
+ 
         var message = new Message
         {
-            RoomId = roomId,
+            ChatRoomId = roomId,
             SenderId = userId,
             SenderName = username,
             Content = content,
@@ -166,7 +166,7 @@ public class ChatHub : Hub
         await Clients.Group(roomId).SendAsync("ReceiveMessage", new
         {
             Id = message.Id,
-            RoomId = message.RoomId,
+            RoomId = message.ChatRoomId,
             SenderId = message.SenderId,
             SenderName = message.SenderName,
             Content = message.Content,
@@ -188,7 +188,7 @@ public class ChatHub : Hub
             message.ReadAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
 
-            await Clients.Group(message.RoomId).SendAsync("MessageRead", messageId, GetUserId());
+            await Clients.Group(message.ChatRoomId).SendAsync("MessageRead", messageId, GetUserId());
         }
     }
 
